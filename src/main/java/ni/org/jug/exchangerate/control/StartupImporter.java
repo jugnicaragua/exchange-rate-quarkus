@@ -20,11 +20,16 @@ public class StartupImporter {
     @ConfigProperty(name = "exchange-rate-client.max-retry", defaultValue = "3")
     Integer maxRetryCount;
 
+    @ConfigProperty(name = "data.import.skip", defaultValue = "true")
+    Boolean skipInitialImport;
+
     @Inject
     ExchangeRateImporter importer;
 
     void startup(@Observes StartupEvent event) {
-        doImportCentralBankData();
+        if (!skipInitialImport) {
+            doImportCentralBankData();
+        }
         doImportCommercialBankData();
     }
     
@@ -56,10 +61,12 @@ public class StartupImporter {
     private void doImportCommercialBankData() {
         importer.importListOfSupportedBanks();
 
-        try {
-            importer.importCurrentCommercialBankData();
-        } catch (IllegalArgumentException ex) {
-            LOGGER.errorf(ex,"Ocurrio un error durante la importacion de la compra/venta del dia de hoy [%s]", LocalDate.now());
+        if (!skipInitialImport) {
+            try {
+                importer.importCurrentCommercialBankData();
+            } catch (IllegalArgumentException ex) {
+                LOGGER.errorf(ex, "Ocurrio un error durante la importacion de la compra/venta del dia de hoy [%s]", LocalDate.now());
+            }
         }
     }
 }
